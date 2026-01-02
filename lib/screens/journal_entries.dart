@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart'; 
-import 'package:intl/intl.dart'; // Make sure this package is added!
+import 'package:intl/intl.dart';
 import '../models/journal_entry.dart';
 import '../services/journal_storage.dart';
 import 'journal_detail.dart';
@@ -16,13 +16,13 @@ class JournalEntriesPage extends StatefulWidget {
 
 class _JournalEntriesPageState extends State<JournalEntriesPage> {
   DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay; // ✅ 1. Starts as NULL (No selection)
+  DateTime? _selectedDay; 
   late Future<List<JournalEntry>> _entriesFuture;
 
   @override
   void initState() {
     super.initState();
-    _selectedDay = null; // Ensure no day is highlighted initially
+    _selectedDay = null; 
     _loadEntries();
   }
 
@@ -34,32 +34,36 @@ class _JournalEntriesPageState extends State<JournalEntriesPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Format Today's Date: "Sunday, 28 Dec"
+    // 🎨 Dynamic Theme Colors
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final scaffoldBg = theme.scaffoldBackgroundColor;
+    final textColor = theme.textTheme.bodyLarge?.color;
+    final primaryGreen = theme.colorScheme.primary;
+    final surfaceColor = theme.colorScheme.surface;
+
     final todayStr = DateFormat('EEEE, d MMM').format(DateTime.now());
 
     return Scaffold(
-      backgroundColor: AppTheme.oatMilk,
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
-        title: const Text('Journal Calendar', style: TextStyle(color: AppTheme.espresso, fontWeight: FontWeight.bold)),
-        backgroundColor: AppTheme.oatMilk,
+        title: Text('Journal Calendar', 
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+        backgroundColor: scaffoldBg,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.espresso),
+        iconTheme: IconThemeData(color: textColor),
       ),
       
-      // FLOATING BUTTON (Always allows adding an entry)
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppTheme.matchaGreen,
-        icon: const Icon(Icons.edit, color: Colors.white),
-        label: const Text("New Entry", style: TextStyle(color: Colors.white)),
-        onPressed: () {
-          // ✅ 4. If no date picked, default to TODAY
-          _navigateToNewEntry(_selectedDay ?? DateTime.now());
-        },
+        backgroundColor: primaryGreen,
+        icon: Icon(Icons.edit, color: isDark ? AppTheme.darkBackground : Colors.white),
+        label: Text("New Entry", 
+          style: TextStyle(color: isDark ? AppTheme.darkBackground : Colors.white)),
+        onPressed: () => _navigateToNewEntry(_selectedDay ?? DateTime.now()),
       ),
 
       body: Column(
         children: [
-          // ✅ 2. HEADER: Shows Today's Date prominently
           Container(
             width: double.infinity,
             padding: const EdgeInsets.only(bottom: 10),
@@ -68,43 +72,59 @@ class _JournalEntriesPageState extends State<JournalEntriesPage> {
               "Today is $todayStr",
               style: TextStyle(
                 fontSize: 16, 
-                color: AppTheme.espresso.withOpacity(0.6), 
+                color: textColor?.withOpacity(0.6), 
                 fontWeight: FontWeight.w600
               ),
             ),
           ),
 
-          // 📅 CALENDAR
+          // 📅 CALENDAR (Themed)
           TableCalendar(
             firstDay: DateTime.utc(2020, 1, 1),
             lastDay: DateTime.utc(2030, 12, 31),
             focusedDay: _focusedDay,
-            currentDay: DateTime.now(), // Marks today with a subtle indicator
-            
-            // Only highlight if _selectedDay is NOT null
+            currentDay: DateTime.now(),
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            
-            // Force Month View (No 2-week button)
             availableCalendarFormats: const { CalendarFormat.month: 'Month' }, 
-            headerStyle: const HeaderStyle(
+            
+            headerStyle: HeaderStyle(
               formatButtonVisible: false, 
               titleCentered: true,
-              titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.espresso),
+              titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+              leftChevronIcon: Icon(Icons.chevron_left, color: textColor),
+              rightChevronIcon: Icon(Icons.chevron_right, color: textColor),
             ),
             
             calendarStyle: CalendarStyle(
-              // The Green Selection Circle
-              selectedDecoration: const BoxDecoration(color: AppTheme.matchaGreen, shape: BoxShape.circle),
-              // Today's indicator (when not selected)
+              // Selection & Today
+              selectedDecoration: BoxDecoration(color: primaryGreen, shape: BoxShape.circle),
               todayDecoration: BoxDecoration(color: AppTheme.cocoa.withOpacity(0.3), shape: BoxShape.circle),
-              todayTextStyle: const TextStyle(color: AppTheme.espresso, fontWeight: FontWeight.bold),
-              defaultTextStyle: const TextStyle(color: AppTheme.espresso),
+              
+              // Text Colors
+              todayTextStyle: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+              defaultTextStyle: TextStyle(color: textColor),
+              weekendTextStyle: TextStyle(color: isDark ? AppTheme.darkMatcha.withOpacity(0.8) : AppTheme.cocoa),
+              outsideTextStyle: TextStyle(color: textColor?.withOpacity(0.3)),
+              
+              // Row/Cell Styling
+              tableBorder: const TableBorder(
+                top: BorderSide.none,
+                bottom: BorderSide.none,
+                left: BorderSide.none,
+                right: BorderSide.none,
+                horizontalInside: BorderSide.none,
+                verticalInside: BorderSide.none,
+),
+
+            ),
+
+            daysOfWeekStyle: DaysOfWeekStyle(
+              weekdayStyle: TextStyle(color: textColor?.withOpacity(0.7), fontWeight: FontWeight.bold),
+              weekendStyle: TextStyle(color: primaryGreen.withOpacity(0.7), fontWeight: FontWeight.bold),
             ),
 
             onDaySelected: (selectedDay, focusedDay) {
               setState(() {
-                // Toggle selection: If tapping the same day, unselect it? 
-                // No, usually just select it.
                 _selectedDay = selectedDay;
                 _focusedDay = focusedDay;
               });
@@ -112,9 +132,8 @@ class _JournalEntriesPageState extends State<JournalEntriesPage> {
           ),
           
           const SizedBox(height: 10),
-          const Divider(),
+          Divider(color: theme.dividerColor),
 
-          // 📝 ENTRIES LIST
           Expanded(
             child: FutureBuilder<List<JournalEntry>>(
               future: _entriesFuture,
@@ -122,14 +141,9 @@ class _JournalEntriesPageState extends State<JournalEntriesPage> {
                 if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                 
                 final allEntries = snapshot.data!;
-                
-                // ✅ 3. FILTER LOGIC:
-                // If NO date is selected -> Show ALL entries (Reverse chronological)
-                // If date IS selected -> Show only that day's entries
                 List<JournalEntry> displayEntries;
                 
                 if (_selectedDay == null) {
-                  // Show all, sorted by newest first
                   displayEntries = List.from(allEntries);
                   displayEntries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
                 } else {
@@ -145,14 +159,14 @@ class _JournalEntriesPageState extends State<JournalEntriesPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.create, size: 40, color: AppTheme.espresso.withOpacity(0.3)),
+                          Icon(Icons.create, size: 40, color: textColor?.withOpacity(0.3)),
                           const SizedBox(height: 10),
                           Text(
                             _selectedDay == null 
                                 ? "No entries yet.\nStart your journey today!" 
                                 : "No entries for this day.\nTap here to write!",
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: AppTheme.espresso.withOpacity(0.5)),
+                            style: TextStyle(color: textColor?.withOpacity(0.5)),
                           ),
                         ],
                       ),
@@ -168,23 +182,24 @@ class _JournalEntriesPageState extends State<JournalEntriesPage> {
                     final entryDate = DateFormat('MMM d, h:mm a').format(entry.timestamp);
 
                     return Card(
-                      color: Colors.white,
+                      color: surfaceColor, // ☕ Uses darkSurface or latteFoam
+                      elevation: isDark ? 2 : 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       margin: const EdgeInsets.only(bottom: 10),
                       child: ListTile(
                         title: Text(
                           entry.title ?? "Untitled", 
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.espresso),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                         ),
                         subtitle: Text(
                           "$entryDate\n${entry.content}", 
                           maxLines: 2, 
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: AppTheme.espresso.withOpacity(0.7)),
+                          style: TextStyle(color: textColor?.withOpacity(0.7)),
                         ),
                         isThreeLine: true,
                         trailing: entry.getStickers().isNotEmpty 
-                           ? const Icon(Icons.emoji_emotions, color: AppTheme.matchaGreen)
+                           ? Icon(Icons.emoji_emotions, color: primaryGreen)
                            : null,
                         onTap: () {
                            Navigator.push(

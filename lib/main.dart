@@ -7,7 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'utils/theme.dart';
 import 'providers/mood_provider.dart';
-import 'providers/capsule_provider.dart'; // From friend's code
+import 'providers/capsule_provider.dart';
+import 'providers/theme_provider.dart'; // ✅ ADDED
 import 'firebase_options.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/auth_page.dart';
@@ -32,16 +33,15 @@ void main() async {
   await Hive.initFlutter();
 
   // Only keep these if you are still running the migration script
-  // to move old data to Firestore.
   await JournalStorage.init();
   await GratitudeStorage.init();
 
   runApp(
-    // 4. Use MultiProvider to include your friend's CapsuleProvider
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => MoodProvider()),
         ChangeNotifierProvider(create: (context) => CapsuleProvider()),
+        ChangeNotifierProvider(create: (context) => ThemeProvider()), // ✅ ADDED
       ],
       child: const MyApp(),
     ),
@@ -53,12 +53,22 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider =
+        Provider.of<ThemeProvider>(context); // ✅ ADDED
+
     return MaterialApp(
       title: 'Renbo',
-      // This uses AppTheme.lightTheme which ensures your friend's
-      // Coffee + Sage color scheme is applied
-      theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
+
+      // 🌤️ Light theme
+      theme: AppTheme.lightTheme,
+
+      // 🌙 Dark theme
+      darkTheme: AppTheme.darkTheme,
+
+      // 🌓 Controlled by ThemeProvider
+      themeMode: themeProvider.themeMode, // ✅ UPDATED
+
       initialRoute: '/welcome',
       routes: {
         '/welcome': (context) => const WelcomeScreen(),
@@ -83,11 +93,11 @@ class AuthCheck extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        // If logged in, navigate to Home
+
         if (snapshot.hasData) {
           return const HomeScreen();
         }
-        // Otherwise, go to Login/Auth Page
+
         return const AuthPage();
       },
     );

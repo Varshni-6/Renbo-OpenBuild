@@ -5,6 +5,7 @@ import '../models/time_capsule.dart';
 import '../providers/capsule_provider.dart';
 import '../widgets/capsule_card.dart';
 import 'create_capsule_screen.dart';
+import '../utils/theme.dart'; // Import your theme file
 
 class CapsuleVaultScreen extends StatelessWidget {
   const CapsuleVaultScreen({super.key});
@@ -22,33 +23,42 @@ class CapsuleVaultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Listen to the provider for real-time data updates
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textColor = theme.textTheme.titleLarge?.color;
+    final primaryAccent = theme.colorScheme.primary;
+
     final capsuleProvider = Provider.of<CapsuleProvider>(context);
     final allCapsules = capsuleProvider.capsules;
 
-    // Filter capsules based on whether the delivery date has passed
     final now = DateTime.now();
-    final unlocked =
-        allCapsules.where((c) => now.isAfter(c.deliveryDate)).toList();
-    final locked =
-        allCapsules.where((c) => now.isBefore(c.deliveryDate)).toList();
+    final unlocked = allCapsules.where((c) => now.isAfter(c.deliveryDate)).toList();
+    final locked = allCapsules.where((c) => now.isBefore(c.deliveryDate)).toList();
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
-          title: const Text(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          elevation: 0,
+          iconTheme: IconThemeData(color: textColor),
+          title: Text(
             "Emotional Vault",
-            style:
-                TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: textColor,
+              fontFamily: 'Poppins', 
+              fontWeight: FontWeight.bold
+            ),
           ),
-          bottom: const TabBar(
-            tabs: [
+          bottom: TabBar(
+            tabs: const [
               Tab(text: "Unlocked", icon: Icon(Icons.lock_open)),
               Tab(text: "Locked", icon: Icon(Icons.lock_outline)),
             ],
-            indicatorColor: Color(0xFF8E97FD),
-            labelColor: Color(0xFF8E97FD),
+            indicatorColor: primaryAccent,
+            labelColor: primaryAccent,
+            unselectedLabelColor: textColor?.withOpacity(0.5),
           ),
         ),
         body: TabBarView(
@@ -58,27 +68,31 @@ class CapsuleVaultScreen extends StatelessWidget {
           ],
         ),
         floatingActionButton: FloatingActionButton(
-          backgroundColor: const Color(0xFF8E97FD),
+          backgroundColor: primaryAccent,
           onPressed: () => Navigator.push(
             context,
-            MaterialPageRoute(
-                builder: (context) => const CreateCapsuleScreen()),
+            MaterialPageRoute(builder: (context) => const CreateCapsuleScreen()),
           ),
-          child: const Icon(Icons.add, color: Colors.white),
+          child: Icon(Icons.add, color: isDark ? AppTheme.darkBackground : Colors.white),
         ),
       ),
     );
   }
 
   Widget _buildList(BuildContext context, List<TimeCapsule> list) {
+    final theme = Theme.of(context);
+    
     if (list.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(20.0),
           child: Text(
             "Your vault is currently empty.",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, fontFamily: 'Poppins'),
+            style: TextStyle(
+              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5), 
+              fontFamily: 'Poppins'
+            ),
           ),
         ),
       );
@@ -89,25 +103,21 @@ class CapsuleVaultScreen extends StatelessWidget {
       itemCount: list.length,
       itemBuilder: (context, index) {
         final capsule = list[index];
-
-        // CRITICAL FIX: Re-check readiness exactly when the item is rendered/tapped
         final bool isReadyNow = DateTime.now().isAfter(capsule.deliveryDate);
 
         return CapsuleCard(
           capsule: capsule,
           onTap: () {
             if (isReadyNow) {
-              // Open content immediately if the clock has passed the delivery time
               _showContent(context, capsule);
             } else {
-              // Show time remaining if it's still in the future
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text("Patience! ${_getTimeRemainingText(capsule)}"),
                   duration: const Duration(seconds: 2),
                   behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                  backgroundColor: theme.colorScheme.surface,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               );
             }
@@ -118,10 +128,13 @@ class CapsuleVaultScreen extends StatelessWidget {
   }
 
   void _showContent(BuildContext context, TimeCapsule capsule) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: theme.colorScheme.surface, // Uses Coffee Bean in dark mode
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
@@ -136,34 +149,34 @@ class CapsuleVaultScreen extends StatelessWidget {
                 color: Colors.orangeAccent.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.auto_awesome,
-                  color: Colors.orangeAccent, size: 40),
+              child: const Icon(Icons.auto_awesome, color: Colors.orangeAccent, size: 40),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               "A Message from the Past",
               style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
+                  color: theme.textTheme.titleLarge?.color,
                   fontFamily: 'Poppins'),
             ),
             const SizedBox(height: 15),
             Text(
               capsule.content,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontStyle: FontStyle.italic,
                 height: 1.5,
-                color: Colors.black87,
+                color: theme.textTheme.bodyLarge?.color,
               ),
             ),
             const SizedBox(height: 30),
-            Divider(color: Colors.grey[300]),
+            Divider(color: theme.dividerColor),
             const SizedBox(height: 10),
             Text(
               "Sealed on ${DateFormat('MMMM dd, yyyy').format(capsule.createdAt)}",
-              style: const TextStyle(color: Colors.grey, fontSize: 13),
+              style: TextStyle(color: theme.textTheme.bodySmall?.color?.withOpacity(0.5), fontSize: 13),
             ),
             const SizedBox(height: 30),
             SizedBox(
@@ -171,13 +184,16 @@ class CapsuleVaultScreen extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8E97FD),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15)),
+                  backgroundColor: theme.colorScheme.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   padding: const EdgeInsets.symmetric(vertical: 15),
                 ),
-                child: const Text("Close",
-                    style: TextStyle(color: Colors.white, fontSize: 16)),
+                child: Text("Close",
+                    style: TextStyle(
+                      color: isDark ? AppTheme.darkBackground : Colors.white, 
+                      fontSize: 16, 
+                      fontWeight: FontWeight.bold
+                    )),
               ),
             ),
           ],

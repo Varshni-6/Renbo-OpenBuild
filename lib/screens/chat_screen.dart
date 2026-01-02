@@ -68,13 +68,16 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<bool> _showEndSessionDialog() async {
     if (_messages.isEmpty) return true;
 
+    final theme = Theme.of(context);
+
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        backgroundColor: theme.colorScheme.surface, // Themed Background
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("End Session?"),
-        content: const Text("Would you like to save this thread?"),
+        title: Text("End Session?", style: TextStyle(color: theme.textTheme.titleLarge?.color)),
+        content: Text("Would you like to save this thread?", style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
         actions: [
           TextButton(
             onPressed: () {
@@ -85,7 +88,6 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              // Now saves to saved_threads collection, not journal
               await JournalStorage.saveChatThread(
                 messages: _messages,
                 summary:
@@ -94,9 +96,9 @@ class _ChatScreenState extends State<ChatScreen> {
               if (mounted) Navigator.pop(context, true);
             },
             style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor),
-            child: const Text("Save Thread",
-                style: TextStyle(color: Colors.white)),
+                backgroundColor: theme.colorScheme.primary),
+            child: Text("Save Thread",
+                style: TextStyle(color: theme.brightness == Brightness.dark ? AppTheme.darkBackground : Colors.white)),
           ),
         ],
       ),
@@ -137,25 +139,27 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _showHotlineSuggestion() {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("You’re Not Alone"),
-        content: const Text("Would you like to see help hotlines?"),
+        backgroundColor: theme.colorScheme.surface,
+        title: Text("You’re Not Alone", style: TextStyle(color: theme.textTheme.titleLarge?.color)),
+        content: Text("Would you like to see help hotlines?", style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text("Not Now")),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor),
+                backgroundColor: theme.colorScheme.primary),
             onPressed: () {
               Navigator.pop(context);
               Navigator.push(
                   context, MaterialPageRoute(builder: (_) => HotlinesScreen()));
             },
-            child: const Text("View Hotlines",
-                style: TextStyle(color: Colors.white)),
+            child: Text("View Hotlines",
+                style: TextStyle(color: theme.brightness == Brightness.dark ? AppTheme.darkBackground : Colors.white)),
           ),
         ],
       ),
@@ -181,6 +185,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.textTheme.bodyLarge?.color;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -191,10 +198,10 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text('Renbot Chat',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          title: Text('Renbot Chat',
+              style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+          iconTheme: IconThemeData(color: textColor),
           actions: [
-            // 🔥 Person A: New Button to view saved threads
             IconButton(
               icon: const Icon(Icons.history_edu_rounded),
               tooltip: 'Saved Threads',
@@ -222,15 +229,14 @@ class _ChatScreenState extends State<ChatScreen> {
                           ? MainAxisAlignment.end
                           : MainAxisAlignment.start,
                       children: [
-                        // Removed Robot Avatar from here
                         Flexible(
                           child: ChatBubble(
                               text: message['text']!, isSender: isSender),
                         ),
                         if (!isSender)
                           IconButton(
-                            icon: const Icon(Icons.volume_up,
-                                size: 18, color: Colors.grey),
+                            icon: Icon(Icons.volume_up,
+                                size: 18, color: theme.colorScheme.secondary.withOpacity(0.6)),
                             onPressed: () =>
                                 _flutterTts.speak(message['text']!),
                           ),
@@ -252,19 +258,36 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageComposer() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: const BoxDecoration(color: Colors.white),
+      // ☕ Switches to darkSurface (Coffee Bean) in dark mode
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          )
+        ],
+      ),
       child: SafeArea(
         child: Row(
           children: [
             Expanded(
               child: TextField(
                 controller: _controller,
+                // 🎨 Explicitly set text color to ensure visibility
+                style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                 decoration: InputDecoration(
                   hintText: _isListening ? "Listening..." : "Message...",
+                  hintStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5)),
                   filled: true,
-                  fillColor: AppTheme.lightGray,
+                  // 🌙 Bubbles contrast background
+                  fillColor: isDark ? AppTheme.darkBackground : AppTheme.oatMilk,
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(25),
                       borderSide: BorderSide.none),
@@ -273,11 +296,11 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             IconButton(
               icon: Icon(_isListening ? Icons.mic : Icons.mic_none,
-                  color: _isListening ? Colors.red : AppTheme.primaryColor),
+                  color: _isListening ? Colors.red : theme.colorScheme.primary),
               onPressed: _toggleListening,
             ),
             IconButton(
-              icon: const Icon(Icons.send, color: AppTheme.primaryColor),
+              icon: Icon(Icons.send, color: theme.colorScheme.primary),
               onPressed: _sendMessage,
             ),
           ],

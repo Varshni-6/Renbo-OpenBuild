@@ -6,6 +6,7 @@ import 'package:record/record.dart';
 
 import '../services/journal_storage.dart';
 import '../models/journal_entry.dart';
+import '../utils/theme.dart'; // Ensure this is imported
 
 class JournalEditScreen extends StatefulWidget {
   final JournalEntry entry;
@@ -51,17 +52,16 @@ class _JournalEditScreenState extends State<JournalEditScreen> {
     }
 
     final updatedEntry = JournalEntry(
-      id: widget.entry.id, // Pass existing ID to update
+      id: widget.entry.id,
       content: text,
-      timestamp: widget.entry.timestamp, // Keep original timestamp
+      timestamp: widget.entry.timestamp,
       emotion: widget.entry.emotion,
       imagePath: pickedImage?.path,
       audioPath: recordedAudioPath,
     );
 
     await JournalStorage.updateEntry(updatedEntry);
-
-    Navigator.of(context).pop();
+    if (mounted) Navigator.of(context).pop();
   }
 
   Future<void> _pickImage() async {
@@ -104,13 +104,23 @@ class _JournalEditScreenState extends State<JournalEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🎨 Dynamic Theme Colors
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final scaffoldBg = theme.scaffoldBackgroundColor;
+    final surfaceColor = theme.colorScheme.surface;
+    final textColor = theme.textTheme.bodyLarge?.color;
+    final primaryGreen = theme.colorScheme.primary;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF5F2),
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
-        title: const Text("Edit Journal Entry",
-            style: TextStyle(color: Colors.white)),
+        title: Text("Edit Journal Entry",
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
         centerTitle: true,
-        backgroundColor: const Color(0xFF568F87),
+        backgroundColor: scaffoldBg,
+        elevation: 0,
+        iconTheme: IconThemeData(color: textColor),
       ),
       body: Padding(
         padding: const EdgeInsets.all(18.0),
@@ -124,27 +134,35 @@ class _JournalEditScreenState extends State<JournalEditScreen> {
                     maxLines: null,
                     expands: true,
                     textAlignVertical: TextAlignVertical.top,
+                    style: TextStyle(color: textColor),
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: surfaceColor,
                       hintText: "Edit your entry...",
+                      hintStyle: TextStyle(color: textColor?.withOpacity(0.5)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide.none,
                       ),
                     ),
                   ),
-                  if (pickedImage != null)
-                    Positioned.fill(
-                        child: Image.file(pickedImage!, fit: BoxFit.cover))
-                  else if (widget.entry.imagePath != null &&
-                      widget.entry.imagePath!.isNotEmpty)
-                    Positioned.fill(
-                        child: widget.entry.imagePath!.startsWith('http')
-                            ? Image.network(widget.entry.imagePath!,
-                                fit: BoxFit.cover)
-                            : Image.file(File(widget.entry.imagePath!),
-                                fit: BoxFit.cover)),
+                  if (pickedImage != null || (widget.entry.imagePath?.isNotEmpty ?? false))
+                    Positioned(
+                      bottom: 10,
+                      right: 10,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: SizedBox(
+                          width: 100,
+                          height: 100,
+                          child: pickedImage != null
+                              ? Image.file(pickedImage!, fit: BoxFit.cover)
+                              : (widget.entry.imagePath!.startsWith('http')
+                                  ? Image.network(widget.entry.imagePath!, fit: BoxFit.cover)
+                                  : Image.file(File(widget.entry.imagePath!), fit: BoxFit.cover)),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -152,42 +170,59 @@ class _JournalEditScreenState extends State<JournalEditScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton.icon(
+                _buildActionButton(
                   onPressed: _startStopRecording,
-                  icon: Icon(isRecording ? Icons.stop : Icons.mic,
-                      color: Colors.white),
-                  label: Text(isRecording ? 'Stop' : 'Record Audio',
-                      style: const TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        isRecording ? Colors.red : const Color(0xFF568F87),
-                  ),
+                  icon: isRecording ? Icons.stop : Icons.mic,
+                  label: isRecording ? 'Stop' : 'Record Audio',
+                  color: isRecording ? Colors.red : primaryGreen,
+                  textColor: isDark ? AppTheme.darkBackground : Colors.white,
                 ),
-                ElevatedButton.icon(
+                _buildActionButton(
                   onPressed: _pickImage,
-                  icon: const Icon(Icons.image, color: Colors.white),
-                  label: const Text('Change Image',
-                      style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF568F87)),
+                  icon: Icons.image,
+                  label: 'Change Image',
+                  color: primaryGreen,
+                  textColor: isDark ? AppTheme.darkBackground : Colors.white,
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF568F87),
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18)),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryGreen,
+                  foregroundColor: isDark ? AppTheme.darkBackground : Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18)),
+                ),
+                onPressed: _saveEntry,
+                child: const Text("Save Changes", 
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
-              onPressed: _saveEntry,
-              child: const Text("Save Changes"),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required VoidCallback onPressed,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Color textColor,
+  }) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, color: textColor, size: 20),
+      label: Text(label, style: TextStyle(color: textColor, fontSize: 12)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

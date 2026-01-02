@@ -36,14 +36,12 @@ class _GratitudeBubblesScreenState extends State<GratitudeBubblesScreen>
     super.dispose();
   }
 
-  // 🔥 Firestore version: Just push to DB, StreamBuilder handles the rest
   void _addGratitude() async {
     final text = _controller.text.trim();
     if (text.isNotEmpty) {
       await GratitudeStorage.addGratitude(text);
       _controller.clear();
 
-      // Trigger confetti animation
       setState(() {
         _showConfetti = true;
       });
@@ -59,22 +57,31 @@ class _GratitudeBubblesScreenState extends State<GratitudeBubblesScreen>
   }
 
   void _showAddGratitudeDialog() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+        // 🌓 Themed Dialog Background
+        backgroundColor: theme.colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        title: Text(
           'Add a Gratitude',
-          style: TextStyle(color: AppTheme.darkGray),
+          style: TextStyle(color: theme.textTheme.titleLarge?.color),
         ),
         content: TextField(
           controller: _controller,
           autofocus: true,
+          style: TextStyle(color: theme.textTheme.bodyLarge?.color),
           decoration: InputDecoration(
             hintText: 'What are you grateful for today?',
+            hintStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5)),
+            filled: true,
+            fillColor: isDark ? AppTheme.darkBackground : AppTheme.oatMilk,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15),
+              borderSide: BorderSide.none,
             ),
           ),
           onSubmitted: (_) {
@@ -85,8 +92,8 @@ class _GratitudeBubblesScreenState extends State<GratitudeBubblesScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppTheme.mediumGray)),
+            child: Text('Cancel',
+                style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7))),
           ),
           ElevatedButton(
             onPressed: () {
@@ -94,11 +101,12 @@ class _GratitudeBubblesScreenState extends State<GratitudeBubblesScreen>
               Navigator.of(context).pop();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: isDark ? AppTheme.darkBackground : Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15)),
             ),
-            child: const Text('Add', style: TextStyle(color: Colors.white)),
+            child: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -107,22 +115,28 @@ class _GratitudeBubblesScreenState extends State<GratitudeBubblesScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textColor = theme.textTheme.bodyLarge?.color;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      // 🌓 Dynamic Background
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Gratitude Bubbles',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('Gratitude Bubbles',
+            style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: IconThemeData(color: textColor),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddGratitudeDialog,
-        backgroundColor: const Color.fromARGB(255, 129, 167, 199),
-        child: const Icon(Icons.add, color: Colors.white),
+        // Using Primary Color for the FAB to keep it high-contrast but themed
+        backgroundColor: theme.colorScheme.primary,
+        child: Icon(Icons.add, color: isDark ? AppTheme.darkBackground : Colors.white),
       ),
       body: Stack(
         children: [
-          // 🔥 REAL-TIME STREAM: Listens to Firestore changes
           StreamBuilder<List<Gratitude>>(
             stream: GratitudeStorage.getGratitudeStream(),
             builder: (context, snapshot) {
@@ -131,10 +145,10 @@ class _GratitudeBubblesScreenState extends State<GratitudeBubblesScreen>
               }
 
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(
+                return Center(
                   child: Text(
                     'No gratitudes yet. Add one to see it float!',
-                    style: TextStyle(fontSize: 16, color: AppTheme.mediumGray),
+                    style: TextStyle(fontSize: 16, color: textColor?.withOpacity(0.5)),
                     textAlign: TextAlign.center,
                   ),
                 );
@@ -147,8 +161,6 @@ class _GratitudeBubblesScreenState extends State<GratitudeBubblesScreen>
 
               return Stack(
                 children: gratitudes.map((gratitude) {
-                  // Generate stable random positions based on the document ID
-                  // (using seed so bubbles don't jump around on every refresh)
                   final seed = gratitude.id.hashCode;
                   final random = Random(seed);
 
@@ -166,7 +178,7 @@ class _GratitudeBubblesScreenState extends State<GratitudeBubblesScreen>
                       animation: _animationController,
                       xOffset: xOffset,
                       yOffset: yOffset,
-                      onUpdated: () {}, // Stream handles updates now
+                      onUpdated: () {}, 
                     ),
                   );
                 }).toList(),
@@ -174,7 +186,6 @@ class _GratitudeBubblesScreenState extends State<GratitudeBubblesScreen>
             },
           ),
 
-          // Confetti overlay
           if (_showConfetti)
             Center(
               child: Lottie.asset(

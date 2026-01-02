@@ -16,7 +16,19 @@ class MoodCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Check current theme brightness
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // 🎨 Logic for ultra-clear text
+    // If dark mode: pure white. If light mode: your standard espresso/gray.
+    final Color titleColor = isDark ? Colors.white : AppTheme.espresso;
+    final Color contentColor = isDark ? Colors.white.withOpacity(0.9) : AppTheme.darkGray;
+
     return Card(
+      // Ensure the card background is also adaptive
+      color: Colors.transparent, 
+      elevation: 0,
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
@@ -29,16 +41,22 @@ class MoodCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 18,
+                    style: TextStyle(
+                      fontSize: 14, // Slightly smaller for "Thought of the day" label
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.darkGray,
+                      color: titleColor, // High visibility
+                      letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     content,
-                    style: const TextStyle(color: AppTheme.mediumGray),
+                    style: TextStyle(
+                      fontSize: 16,
+                      height: 1.3,
+                      color: contentColor, // High visibility
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ],
               ),

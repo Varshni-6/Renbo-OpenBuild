@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import '../models/journal_entry.dart';
 import '../utils/theme.dart';
-import 'journal_screen.dart'; // ✅ Import this to navigate to Edit
+import 'journal_screen.dart'; 
 
 class JournalDetailScreen extends StatefulWidget {
   final JournalEntry entry;
@@ -38,6 +38,12 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🎨 Grab Dynamic Theme colors
+    final theme = Theme.of(context);
+    final scaffoldBg = theme.scaffoldBackgroundColor;
+    final textColor = theme.textTheme.bodyLarge?.color;
+    final primaryGreen = theme.colorScheme.primary;
+
     final dateStr = "${widget.entry.timestamp.day}/${widget.entry.timestamp.month}/${widget.entry.timestamp.year}";
     
     // Calculate Canvas Height
@@ -48,16 +54,15 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
     double requiredHeight = maxStickerY + 200;
 
     return Scaffold(
-      backgroundColor: AppTheme.oatMilk,
+      backgroundColor: scaffoldBg, // Dynamic BG
       appBar: AppBar(
-        title: Text(dateStr, style: const TextStyle(color: AppTheme.espresso)),
-        backgroundColor: AppTheme.oatMilk,
+        title: Text(dateStr, style: TextStyle(color: textColor)), // Dynamic text
+        backgroundColor: scaffoldBg, // Dynamic App Bar BG
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.espresso),
+        iconTheme: IconThemeData(color: textColor),
         actions: [
-          // ✅ EDIT BUTTON
           IconButton(
-            icon: const Icon(Icons.edit, color: AppTheme.matchaGreen),
+            icon: Icon(Icons.edit, color: primaryGreen),
             onPressed: () {
               Navigator.push(
                 context,
@@ -65,7 +70,7 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                   builder: (context) => JournalScreen(
                     selectedDate: widget.entry.timestamp,
                     emotion: widget.entry.emotion ?? "Neutral",
-                    existingEntry: widget.entry, // ✅ PASS THE ENTRY TO EDIT
+                    existingEntry: widget.entry, 
                   ),
                 ),
               );
@@ -93,26 +98,54 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
                 children: [
                   Text(
                     widget.entry.title ?? "Untitled",
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.espresso),
+                    style: TextStyle(
+                      fontSize: 24, 
+                      fontWeight: FontWeight.bold, 
+                      color: textColor // Dynamic text
+                    ),
                   ),
                   const SizedBox(height: 10),
+                  // Emotion Badge
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(color: AppTheme.matchaGreen, borderRadius: BorderRadius.circular(20)),
-                    child: Text(widget.entry.emotion ?? "Neutral", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    decoration: BoxDecoration(
+                      color: primaryGreen, 
+                      borderRadius: BorderRadius.circular(20)
+                    ),
+                    child: Text(
+                      widget.entry.emotion ?? "Neutral", 
+                      style: const TextStyle(
+                        color: Colors.white, 
+                        fontWeight: FontWeight.bold
+                      )
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Text(
                     widget.entry.content,
-                    style: const TextStyle(fontSize: 16, height: 1.5, color: AppTheme.espresso),
+                    style: TextStyle(
+                      fontSize: 16, 
+                      height: 1.5, 
+                      color: textColor // Dynamic text
+                    ),
                   ),
                   if (_audioAvailable) ...[
                     const SizedBox(height: 20),
-                    IconButton(icon: const Icon(Icons.play_circle_fill, size: 40, color: AppTheme.matchaGreen), onPressed: _audioPlayer.play),
+                    IconButton(
+                      icon: Icon(
+                        Icons.play_circle_fill, 
+                        size: 40, 
+                        color: primaryGreen
+                      ), 
+                      onPressed: _audioPlayer.play
+                    ),
                   ],
                   if (widget.entry.imagePath != null) ...[
                     const SizedBox(height: 20),
-                    ClipRRect(borderRadius: BorderRadius.circular(20), child: Image.file(File(widget.entry.imagePath!))),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20), 
+                      child: Image.file(File(widget.entry.imagePath!))
+                    ),
                   ],
                   const SizedBox(height: 100),
                 ],

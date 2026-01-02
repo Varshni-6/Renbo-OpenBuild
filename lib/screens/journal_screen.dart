@@ -50,18 +50,16 @@ class _JournalScreenState extends State<JournalScreen> {
   void initState() {
     super.initState();
     
-    // PRE-FILL DATA IF EDITING
     if (widget.existingEntry != null) {
       _titleController = TextEditingController(text: widget.existingEntry!.title);
       _contentController = TextEditingController(text: widget.existingEntry!.content);
-      stickers = widget.existingEntry!.getStickers(); // Load old stickers
+      stickers = widget.existingEntry!.getStickers(); 
       
       if (widget.existingEntry!.imagePath != null) {
         pickedImage = File(widget.existingEntry!.imagePath!);
       }
       recordedAudioPath = widget.existingEntry!.audioPath;
     } else {
-      // FRESH START
       _titleController = TextEditingController();
       _contentController = TextEditingController();
     }
@@ -89,22 +87,19 @@ class _JournalScreenState extends State<JournalScreen> {
     }
     
     if (widget.existingEntry != null) {
-      // 📝 UPDATE EXISTING ENTRY
       final entry = widget.existingEntry!;
       entry.title = title.isEmpty ? "Untitled Entry" : title;
       entry.content = text;
       entry.imagePath = pickedImage?.path;
       entry.audioPath = recordedAudioPath;
-      entry.setStickers(stickers); // Update stickers list
+      entry.setStickers(stickers); 
       
-      // ✅ CHANGED: Use Firestore Storage instead of Hive entry.save()
       await JournalStorage.updateEntry(entry);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Entry Updated!')));
       }
     } else {
-      // ➕ CREATE NEW ENTRY
       final entry = JournalEntry(
         title: title.isEmpty ? "Untitled Entry" : title, 
         content: text,
@@ -117,7 +112,6 @@ class _JournalScreenState extends State<JournalScreen> {
       await JournalStorage.addEntry(entry);
     }
     
-    // Go back to Calendar
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
@@ -187,11 +181,17 @@ class _JournalScreenState extends State<JournalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // If editing, use the entry's original date. If new, use selectedDate.
+    // 🎨 Grab Dynamic Theme colors
+    final theme = Theme.of(context);
+    final scaffoldBg = theme.scaffoldBackgroundColor;
+    final primaryTextColor = theme.textTheme.titleLarge?.color;
+    final secondaryTextColor = theme.textTheme.bodyMedium?.color;
+    final surfaceColor = theme.colorScheme.surface;
+    final accentGreen = theme.colorScheme.primary;
+
     final displayDate = widget.existingEntry?.timestamp ?? widget.selectedDate;
     final dateStr = "${displayDate.day}/${displayDate.month}/${displayDate.year}";
     
-    // Calculate required height for stickers
     double maxStickerY = 0;
     for (var s in stickers) {
       if (s.y > maxStickerY) maxStickerY = s.y;
@@ -199,31 +199,29 @@ class _JournalScreenState extends State<JournalScreen> {
     double requiredHeight = maxStickerY + 200;
 
     return Scaffold(
-      backgroundColor: AppTheme.oatMilk, 
+      backgroundColor: scaffoldBg, // Dynamic BG
       appBar: AppBar(
-        backgroundColor: AppTheme.oatMilk,
+        backgroundColor: scaffoldBg, // Dynamic App Bar BG
         title: Text(
           widget.existingEntry != null ? "Edit Entry" : "$dateStr • ${widget.emotion}", 
-          style: const TextStyle(color: AppTheme.espresso, fontSize: 16)
+          style: TextStyle(color: primaryTextColor, fontSize: 16)
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: AppTheme.espresso),
+        iconTheme: IconThemeData(color: primaryTextColor),
         elevation: 0,
         actions: [
           IconButton(
             onPressed: _saveEntry, 
-            icon: const Icon(Icons.check, color: AppTheme.matchaGreen)
+            icon: Icon(Icons.check, color: accentGreen)
           )
         ],
       ),
       body: Column(
         children: [
-          // SCROLLABLE CANVAS
           Expanded(
             child: SingleChildScrollView(
               child: Stack(
                 children: [
-                  // INVISIBLE SPACER to ensure canvas is big enough
                   Container(
                     height: requiredHeight < MediaQuery.of(context).size.height 
                         ? MediaQuery.of(context).size.height 
@@ -231,26 +229,27 @@ class _JournalScreenState extends State<JournalScreen> {
                     width: double.infinity,
                   ),
 
-                  // TEXT CONTENT
                   Padding(
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
                         TextField(
                           controller: _titleController,
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.espresso),
-                          decoration: const InputDecoration(
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: primaryTextColor),
+                          decoration: InputDecoration(
                             hintText: "Title...",
+                            hintStyle: TextStyle(color: secondaryTextColor?.withOpacity(0.5)),
                             border: InputBorder.none,
                           ),
                         ),
-                        const Divider(color: AppTheme.cocoa),
+                        Divider(color: theme.dividerColor),
                         TextField(
                           controller: _contentController,
                           maxLines: null, 
-                          style: const TextStyle(fontSize: 16, color: AppTheme.espresso, height: 1.5),
-                          decoration: const InputDecoration(
+                          style: TextStyle(fontSize: 16, color: primaryTextColor, height: 1.5),
+                          decoration: InputDecoration(
                             hintText: "How was your day?",
+                            hintStyle: TextStyle(color: secondaryTextColor?.withOpacity(0.5)),
                             border: InputBorder.none,
                           ),
                         ),
@@ -259,7 +258,6 @@ class _JournalScreenState extends State<JournalScreen> {
                     ),
                   ),
 
-                  // STICKERS
                   ...stickers.asMap().entries.map((entry) {
                     int idx = entry.key;
                     JournalSticker sticker = entry.value;
@@ -276,7 +274,7 @@ class _JournalScreenState extends State<JournalScreen> {
                         },
                         child: Stack(
                           children: [
-                            Container(
+                            SizedBox(
                               height: 120, width: 120,
                               child: _isEmoji(sticker.path)
                                   ? Text(sticker.path, style: const TextStyle(fontSize: 80))
@@ -299,13 +297,19 @@ class _JournalScreenState extends State<JournalScreen> {
             ),
           ),
 
-          // ELABORATE BUTTONS
+          // 🌙 DYNAMIC TOOLBAR
           Container(
             padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 15),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: surfaceColor, // Switches from white to darkSurface
               borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(theme.brightness == Brightness.dark ? 0.3 : 0.05), 
+                  blurRadius: 10, 
+                  offset: const Offset(0, -5)
+                )
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -313,9 +317,9 @@ class _JournalScreenState extends State<JournalScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                      _toolButton(Icons.emoji_emotions_outlined, "Sticker", AppTheme.matchaGreen, _pickSticker),
-                      _toolButton(Icons.image_outlined, "Photo", AppTheme.matchaGreen, _pickImage),
-                      _toolButton(isRecording ? Icons.stop_circle : Icons.mic_none, isRecording ? "Stop" : "Voice", isRecording ? Colors.red : AppTheme.matchaGreen, _startStopRecording),
+                      _toolButton(Icons.emoji_emotions_outlined, "Sticker", accentGreen, _pickSticker),
+                      _toolButton(Icons.image_outlined, "Photo", accentGreen, _pickImage),
+                      _toolButton(isRecording ? Icons.stop_circle : Icons.mic_none, isRecording ? "Stop" : "Voice", isRecording ? Colors.red : accentGreen, _startStopRecording),
                   ],
                 ),
                 const SizedBox(height: 15),
@@ -348,7 +352,14 @@ class _JournalScreenState extends State<JournalScreen> {
             child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(height: 5),
-          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.espresso)),
+          Text(
+            label, 
+            style: TextStyle(
+              fontSize: 12, 
+              fontWeight: FontWeight.w600, 
+              color: Theme.of(context).textTheme.bodyLarge?.color // Dynamic Label Color
+            )
+          ),
         ],
       ),
     );

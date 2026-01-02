@@ -12,7 +12,7 @@ class BreathingGuidePage extends StatefulWidget {
 class _BreathingGuidePageState extends State<BreathingGuidePage>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
-  late Timer _breathingTimer;
+  Timer? _breathingTimer; // Made nullable for safety
   int _countdown = 4;
   String _instruction = "Breathe in";
   bool _isAnimating = false;
@@ -33,27 +33,27 @@ class _BreathingGuidePageState extends State<BreathingGuidePage>
       _countdown = 4;
     });
     
-    // Start the expansion animation
     _animationController.forward(from: 0.0);
 
     _breathingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
       setState(() {
         _countdown--;
         if (_countdown < 0) {
           if (_instruction == "Breathe in") {
             _instruction = "Hold";
             _countdown = 2;
-            _animationController.stop(); // Hold the animation
+            _animationController.stop(); 
           } else if (_instruction == "Hold") {
             _instruction = "Breathe out";
             _countdown = 6;
             _animationController.duration = const Duration(seconds: 6);
-            _animationController.reverse(from: 1.0); // Start contraction
+            _animationController.reverse(from: 1.0);
           } else if (_instruction == "Breathe out") {
             _instruction = "Breathe in";
             _countdown = 4;
             _animationController.duration = const Duration(seconds: 4);
-            _animationController.forward(from: 0.0); // Start expansion
+            _animationController.forward(from: 0.0);
           }
         }
       });
@@ -61,7 +61,7 @@ class _BreathingGuidePageState extends State<BreathingGuidePage>
   }
 
   void _pauseBreathing() {
-    _breathingTimer.cancel();
+    _breathingTimer?.cancel();
     _animationController.stop();
     setState(() {
       _isAnimating = false;
@@ -71,20 +71,29 @@ class _BreathingGuidePageState extends State<BreathingGuidePage>
   @override
   void dispose() {
     _animationController.dispose();
-    if (_isAnimating) {
-      _breathingTimer.cancel();
-    }
+    _breathingTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // 🎨 Dynamic Theme Colors
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textColor = theme.textTheme.titleLarge?.color;
+    final primaryGreen = theme.colorScheme.primary;
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor, // Adaptive background
       appBar: AppBar(
-        title: const Text("Breathing Guide"),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.darkGray,
+        title: Text(
+          "Breathing Guide",
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+        ),
+        // 🌓 Fixed Header: Background turns dark in dark mode
+        backgroundColor: Colors.transparent, 
         elevation: 0,
+        iconTheme: IconThemeData(color: textColor),
       ),
       body: Center(
         child: Column(
@@ -92,7 +101,11 @@ class _BreathingGuidePageState extends State<BreathingGuidePage>
           children: [
             Text(
               _instruction,
-              style: const TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 32.0, 
+                fontWeight: FontWeight.bold,
+                color: textColor, // Adaptive text
+              ),
             ),
             const SizedBox(height: 100),
             AnimatedBuilder(
@@ -104,7 +117,7 @@ class _BreathingGuidePageState extends State<BreathingGuidePage>
                 } else if (_instruction == "Breathe out") {
                   scale = 2.0 - _animationController.value;
                 } else {
-                  scale = 2.0; // Hold at the expanded size
+                  scale = 2.0; 
                 }
                 
                 return Transform.scale(
@@ -113,16 +126,24 @@ class _BreathingGuidePageState extends State<BreathingGuidePage>
                     width: 150,
                     height: 150,
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.5),
+                      // 🌿 Using primary green with opacity for the "lung" effect
+                      color: primaryGreen.withOpacity(isDark ? 0.3 : 0.5),
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryGreen.withOpacity(0.2),
+                          blurRadius: 30,
+                          spreadRadius: 10,
+                        )
+                      ],
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       _countdown > 0 ? '$_countdown' : '',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: isDark ? theme.colorScheme.onSurface : Colors.white,
                       ),
                     ),
                   ),
@@ -130,9 +151,22 @@ class _BreathingGuidePageState extends State<BreathingGuidePage>
               },
             ),
             const SizedBox(height: 100),
-            ElevatedButton(
-              onPressed: _isAnimating ? _pauseBreathing : _startBreathing,
-              child: Text(_isAnimating ? 'Pause' : 'Start Breathing'),
+            // Themed Start/Pause Button
+            SizedBox(
+              width: 250,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDark ? theme.colorScheme.surface : AppTheme.espresso,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                ),
+                onPressed: _isAnimating ? _pauseBreathing : _startBreathing,
+                child: Text(
+                  _isAnimating ? 'Pause' : 'Start Breathing',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
             ),
           ],
         ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
+import 'package:renbo/providers/theme_provider.dart';
 import 'package:renbo/services/journal_storage.dart';
 import 'package:renbo/api/gemini_service.dart';
 import 'package:renbo/utils/theme.dart';
@@ -9,7 +11,7 @@ import 'package:renbo/utils/theme.dart';
 import 'package:renbo/screens/chat_screen.dart';
 import 'package:renbo/screens/meditation_screen.dart';
 import 'package:renbo/screens/hotlines_screen.dart';
-import 'package:renbo/screens/stress_tap_game.dart';
+import 'package:renbo/screens/stress_tap_game.dart'; 
 import 'package:renbo/screens/settings_page.dart';
 import 'package:renbo/screens/gratitude_bubbles_screen.dart';
 import 'package:renbo/screens/calendar_screen.dart';
@@ -32,10 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _thoughtOfTheDay = "Loading a new thought...";
   final GeminiService _geminiService = GeminiService();
 
-  // Person A: Migration State
   bool _isMigrating = false;
-
-  // Person B/C: Aftercare State (Friend's Features)
   final PageController _aftercareController = PageController();
   int _currentAftercarePage = 0;
 
@@ -59,7 +58,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _userName = user.displayName ?? "User";
         });
 
-        // 🔥 Person A: Trigger Cloud Sync
         if (!_isMigrating) {
           _isMigrating = true;
           await _runMigration();
@@ -91,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         setState(() => _thoughtOfTheDay = thought);
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() => _thoughtOfTheDay =
             "The best way to predict the future is to create it.");
@@ -101,12 +99,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textColor = theme.textTheme.bodyLarge?.color;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Renbo',
-            style: TextStyle(
-                color: AppTheme.darkGray, fontWeight: FontWeight.bold)),
+        title: Text(
+          'Renbo',
+          style: TextStyle(
+            color: theme.appBarTheme.titleTextStyle?.color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, _) {
+              return IconButton(
+                icon: Icon(themeProvider.isDarkMode
+                    ? Icons.light_mode_rounded
+                    : Icons.dark_mode_rounded),
+                onPressed: () {
+                  themeProvider.toggleTheme(!themeProvider.isDarkMode);
+                },
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () => Navigator.of(context)
@@ -120,30 +138,34 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Hello, $_userName!',
-                  style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.darkGray)),
-              const SizedBox(height: 16),
-              MoodCard(
-                title: 'Thought of the day',
-                content: _thoughtOfTheDay,
-                image: 'assets/lottie/axolotl.json',
+              Text(
+                'Hello, $_userName!',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
               ),
+              const SizedBox(height: 16),
+
+              // ✨ NEW BRIGHT THOUGHT OF THE DAY BLOCK
+              _buildBrightThoughtCard(isDark, textColor),
+
               const SizedBox(height: 24),
 
-              // Friend's Feature: Self-Care Aftercare
-              Text('Self-Care Check-in',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.darkGray.withOpacity(0.8))),
+              Text(
+                'Self-Care Check-in',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: textColor?.withOpacity(0.8),
+                ),
+              ),
               const SizedBox(height: 12),
-              _buildAftercareSection(),
+              _buildAftercareSection(isDark, textColor),
 
               const SizedBox(height: 24),
-              _buildMainButtons(context),
+              _buildMainButtons(context, theme),
               const SizedBox(height: 24),
 
               Center(
@@ -159,7 +181,28 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildAftercareSection() {
+  // --- HELPER FOR BRIGHT THOUGHT CARD ---
+  Widget _buildBrightThoughtCard(bool isDark, Color? textColor) {
+    // 🎨 Using your primary Matcha color for the "glow" effect
+    final Color baseColor = AppTheme.matchaGreen;
+    final Color cardBg = isDark ? baseColor.withOpacity(0.15) : baseColor.withOpacity(0.1);
+    final Color cardBorder = isDark ? baseColor.withOpacity(0.5) : baseColor.withOpacity(0.4);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: cardBorder, width: 1.5),
+      ),
+      child: MoodCard(
+        title: 'Thought of the day',
+        content: _thoughtOfTheDay,
+        image: 'assets/lottie/axolotl.json',
+      ),
+    );
+  }
+
+  Widget _buildAftercareSection(bool isDark, Color? textColor) {
     return Column(
       children: [
         SizedBox(
@@ -171,33 +214,37 @@ class _HomeScreenState extends State<HomeScreen> {
                 setState(() => _currentAftercarePage = index),
             children: [
               _buildAftercareItem(
-                  icon: Icons.local_drink_rounded,
-                  label: 'Hydrate',
-                  color: Colors.blue.shade100,
-                  iconColor: Colors.blue.shade700,
-                  subtitle:
-                      'Water is fuel for resilience. Even a small sip can help clear the fog.'),
+                isDark: isDark,
+                textColor: textColor,
+                icon: Icons.local_drink_rounded,
+                label: 'Hydrate',
+                baseColor: Colors.blue,
+                subtitle: 'Water is fuel for resilience. Even a small sip can help clear the fog.',
+              ),
               _buildAftercareItem(
-                  icon: Icons.restaurant_rounded,
-                  label: 'Nourish',
-                  color: Colors.orange.shade100,
-                  iconColor: Colors.orange.shade700,
-                  subtitle:
-                      'Your body needs energy to process big feelings. A gentle snack is self-love.'),
+                isDark: isDark,
+                textColor: textColor,
+                icon: Icons.restaurant_rounded,
+                label: 'Nourish',
+                baseColor: Colors.orange,
+                subtitle: 'Your body needs energy to process big feelings. A gentle snack is self-love.',
+              ),
               _buildAftercareItem(
-                  icon: Icons.bedtime_rounded,
-                  label: 'Rest',
-                  color: Colors.purple.shade100,
-                  iconColor: Colors.purple.shade700,
-                  subtitle:
-                      'It is okay to hit the pause button. Recovery requires quiet moments.'),
+                isDark: isDark,
+                textColor: textColor,
+                icon: Icons.bedtime_rounded,
+                label: 'Rest',
+                baseColor: Colors.purple,
+                subtitle: 'It is okay to hit the pause button. Recovery requires quiet moments.',
+              ),
               _buildAftercareItem(
-                  icon: Icons.air_rounded,
-                  label: 'Breathe',
-                  color: Colors.green.shade100,
-                  iconColor: Colors.green.shade700,
-                  subtitle:
-                      'Take one deep breath, just for you. Let the air ground you.'),
+                isDark: isDark,
+                textColor: textColor,
+                icon: Icons.air_rounded,
+                label: 'Breathe',
+                baseColor: Colors.green,
+                subtitle: 'Take one deep breath, just for you. Let the air ground you.',
+              ),
             ],
           ),
         ),
@@ -220,57 +267,75 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: isActive
             ? AppTheme.primaryColor
-            : AppTheme.darkGray.withOpacity(0.2),
+            : Colors.grey.withOpacity(0.3),
         borderRadius: BorderRadius.circular(4),
       ),
     );
   }
 
-  Widget _buildAftercareItem(
-      {required IconData icon,
-      required String label,
-      required Color color,
-      required Color iconColor,
-      required String subtitle}) {
+  Widget _buildAftercareItem({
+    required bool isDark,
+    required Color? textColor,
+    required IconData icon,
+    required String label,
+    required Color baseColor,
+    required String subtitle,
+  }) {
+    final Color iconColor = isDark 
+        ? Color.lerp(baseColor, Colors.white, 0.4)! 
+        : Color.lerp(baseColor, Colors.black, 0.4)!;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: color.withOpacity(0.4),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color, width: 1.5)),
+        color: baseColor.withOpacity(isDark ? 0.15 : 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: baseColor.withOpacity(isDark ? 0.4 : 0.3), 
+          width: 1.5
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
             Icon(icon, color: iconColor, size: 28),
             const SizedBox(width: 12),
-            Text(label,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: iconColor))
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: iconColor,
+              ),
+            ),
           ]),
           const SizedBox(height: 12),
           Expanded(
-              child: Text(subtitle,
-                  style: TextStyle(
-                      fontSize: 13,
-                      height: 1.4,
-                      color: Colors.black87.withOpacity(0.8)))),
+            child: Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.4,
+                color: textColor?.withOpacity(0.85),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMainButtons(BuildContext context) {
+  Widget _buildMainButtons(BuildContext context, ThemeData theme) {
     return Column(
       children: [
-        _buttonRow(context, Icons.edit_note, 'Journal', const CalendarScreen(),
+        _buttonRow(context, theme, Icons.edit_note, 'Journal', const CalendarScreen(),
             Icons.chat_bubble_outline, 'Chat with Ren', const ChatScreen()),
         const SizedBox(height: 16),
         _buttonRow(
             context,
+            theme,
             Icons.headphones_outlined,
             'Meditation',
             const MeditationScreen(),
@@ -280,6 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 16),
         _buttonRow(
             context,
+            theme,
             Icons.bubble_chart,
             'Gratitude',
             const GratitudeBubblesScreen(),
@@ -289,6 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 16),
         _buttonRow(
             context,
+            theme,
             Icons.fingerprint,
             'Zen Space',
             const NonVerbalSessionScreen(),
@@ -298,28 +365,41 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 16),
         Row(
           children: [
-            _buildButton(context,
-                icon: Icons.phone_in_talk,
-                label: 'Hotlines',
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => HotlinesScreen())))
+            _buildButton(
+              context,
+              theme,
+              icon: Icons.phone_in_talk,
+              label: 'Hotlines',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => HotlinesScreen()),
+              ),
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buttonRow(BuildContext context, IconData i1, String l1, Widget s1,
-      IconData i2, String l2, Widget s2) {
+  Widget _buttonRow(
+    BuildContext context,
+    ThemeData theme,
+    IconData i1,
+    String l1,
+    Widget s1,
+    IconData i2,
+    String l2,
+    Widget s2,
+  ) {
     return Row(
       children: [
-        _buildButton(context,
+        _buildButton(context, theme,
             icon: i1,
             label: l1,
             onTap: () =>
                 Navigator.push(context, MaterialPageRoute(builder: (_) => s1))),
         const SizedBox(width: 16),
-        _buildButton(context,
+        _buildButton(context, theme,
             icon: i2,
             label: l2,
             onTap: () =>
@@ -328,12 +408,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildButton(BuildContext context,
-      {required IconData icon,
-      required String label,
-      required VoidCallback onTap}) {
+  Widget _buildButton(
+    BuildContext context,
+    ThemeData theme, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return Expanded(
       child: Card(
+        color: theme.cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: InkWell(
           onTap: onTap,
@@ -342,11 +426,16 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(vertical: 20.0),
             child: Column(
               children: [
-                Icon(icon, size: 40, color: AppTheme.primaryColor),
+                Icon(icon, size: 40, color: theme.colorScheme.primary),
                 const SizedBox(height: 8),
-                Text(label,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: theme.textTheme.bodyLarge?.color,
+                  ),
+                ),
               ],
             ),
           ),

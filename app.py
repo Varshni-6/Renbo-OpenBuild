@@ -1,3 +1,4 @@
+import os  
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import nltk
@@ -89,5 +90,8 @@ def holistic_analysis():
     })
 
 if __name__ == '__main__':
-    # host='0.0.0.0' allows external connections from your Flutter app
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Use the port assigned by Render, or default to 5000 for local testing
+    port = int(os.environ.get("PORT", 5000))
+    
+    # debug=False is recommended for production (Render)
+    app.run(host='0.0.0.0', port=port, debug=False)

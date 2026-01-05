@@ -4,10 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:renbo/api/gemini_service.dart';
+import 'package:renbo/services/api_service.dart'; // ✅ Integrated
 import 'package:renbo/utils/theme.dart';
 import 'package:renbo/widgets/chat_bubble.dart';
 import 'package:renbo/screens/saved_threads_screen.dart';
 import 'package:renbo/services/analytics_service.dart';
+import 'package:url_launcher/url_launcher.dart'; // ✅ Integrated
 
 class ChatScreen extends StatefulWidget {
   final String? threadId;
@@ -23,6 +25,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final GeminiService _geminiService = GeminiService();
+  final ApiService _apiService = ApiService(); // ✅ Initialized
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -34,6 +37,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isLoading = false;
   bool _isProcessingResult = false;
   bool _hasUnsavedChanges = false;
+  bool _showEmergencySupport = false; // ✅ Logic added
 
   String? _currentThreadId;
   String _selectedLanguageName = "English";
@@ -65,6 +69,12 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  void _showEmergencySupportButton() {
+    setState(() {
+      _showEmergencySupport = true;
+    });
+  }
+
   void _initSpeech() async {
     _speechEnabled = await _speechToText.initialize(
       onError: (val) => debugPrint('STT Error: $val'),
@@ -92,8 +102,7 @@ class _ChatScreenState extends State<ChatScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Save Conversation?"),
-        content: const Text(
-            "Would you like to keep this chat thread in your history?"),
+        content: const Text("Would you like to keep this chat thread in your history?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 'discard'),
@@ -137,9 +146,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, ""),
-              child: const Text("Skip")),
+          TextButton(onPressed: () => Navigator.pop(context, ""), child: const Text("Skip")),
           TextButton(
             onPressed: () => Navigator.pop(context, nameController.text.trim()),
             child: const Text("OK"),
@@ -194,6 +201,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return threadDoc.id;
   }
 
+  // --- INTEGRATED SEND MESSAGE LOGIC ---
   void _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
@@ -221,12 +229,26 @@ class _ChatScreenState extends State<ChatScreen> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      // 2. Get AI Response
-      // Note: If your GeminiService only takes 1 argument, remove _selectedLanguageName
-      final response =
-          await _geminiService.generateAndClassify(text, _selectedLanguageName);
+      // 2. Flask Sentiment Analysis (ML Backend)
+      final mlInsight = await _apiService.analyzeText(text);
+      String advice = mlInsight['persona_advice'] ?? "";
+      String riskLevel = mlInsight['risk_level'] ?? "";
+      
+      // 3. Inject ML context into Gemini
+      String combinedPrompt = "System Instruction: $advice. User says: $text";
 
-      // 3. Save Bot Message
+      // 4. Get Gemini Response
+      final response = await _geminiService.generateAndClassify(
+        combinedPrompt, 
+        _selectedLanguageName
+      );
+
+      // 5. Trigger Emergency UI if needed
+      if (riskLevel.contains("High Risk")) {
+        _showEmergencySupportButton();
+      }
+
+      // 6. Save Bot Response
       await _firestore
           .collection('users')
           .doc(uid)
@@ -239,17 +261,21 @@ class _ChatScreenState extends State<ChatScreen> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      setState(() {
-        _isLoading = false;
-        _hasUnsavedChanges = true;
-        _isProcessingResult = false;
-      });
-      _scrollToBottom();
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasUnsavedChanges = true;
+          _isProcessingResult = false;
+        });
+        _scrollToBottom();
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _isProcessingResult = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isProcessingResult = false;
+        });
+      }
       debugPrint("Chat Error: $e");
     }
   }
@@ -327,8 +353,7 @@ class _ChatScreenState extends State<ChatScreen> {
           title: Text(widget.existingTitle ?? 'Renbot Chat'),
           actions: [
             IconButton(
-              icon: const Icon(Icons.history_rounded,
-                  color: AppTheme.primaryColor),
+              icon: const Icon(Icons.history_rounded, color: AppTheme.primaryColor),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -345,6 +370,35 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         body: Column(
           children: [
+            // ✅ EMERGENCY BANNER (New)
+            if (_showEmergencySupport)
+              Container(
+                width: double.infinity,
+                color: Colors.redAccent.withOpacity(0.1),
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        "You don't have to face this alone. Would you like to speak with a professional?",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      onPressed: () => launchUrl(Uri.parse("tel:988")), 
+                      child: const Text("Help", style: TextStyle(color: Colors.white)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: () => setState(() => _showEmergencySupport = false),
+                    )
+                  ],
+                ),
+              ),
+            
             Expanded(
               child: _currentThreadId == null
                   ? const Center(child: Text("Say hello to start a session!"))
@@ -358,38 +412,27 @@ class _ChatScreenState extends State<ChatScreen> {
                           .orderBy('timestamp', descending: false)
                           .snapshots(),
                       builder: (context, snapshot) {
-                        if (snapshot.hasError)
-                          return const Center(
-                              child: Text("Error loading messages"));
-                        if (!snapshot.hasData)
-                          return const Center(
-                              child: CircularProgressIndicator());
+                        if (snapshot.hasError) return const Center(child: Text("Error loading messages"));
+                        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
                         final docs = snapshot.data!.docs;
-                        WidgetsBinding.instance
-                            .addPostFrameCallback((_) => _scrollToBottom());
+                        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
                         return ListView.builder(
                           controller: _scrollController,
                           itemCount: docs.length,
                           itemBuilder: (context, index) {
-                            final data =
-                                docs[index].data() as Map<String, dynamic>;
+                            final data = docs[index].data() as Map<String, dynamic>;
                             bool isBot = data['sender'] == 'bot';
                             return Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 4, horizontal: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
                               child: Row(
-                                mainAxisAlignment: isBot
-                                    ? MainAxisAlignment.start
-                                    : MainAxisAlignment.end,
+                                mainAxisAlignment: isBot ? MainAxisAlignment.start : MainAxisAlignment.end,
                                 children: [
                                   if (isBot)
                                     IconButton(
-                                      icon:
-                                          const Icon(Icons.volume_up, size: 18),
-                                      onPressed: () =>
-                                          _speak(data['text'] ?? ""),
+                                      icon: const Icon(Icons.volume_up, size: 18),
+                                      onPressed: () => _speak(data['text'] ?? ""),
                                     ),
                                   Flexible(
                                     child: ChatBubble(
@@ -430,8 +473,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 decoration: InputDecoration(
                   hintText: _isListening ? "Listening..." : "Message...",
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
                 ),
               ),
             ),

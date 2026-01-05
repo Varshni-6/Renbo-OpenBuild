@@ -56,29 +56,25 @@ class AppLocalizationsEs extends AppLocalizations {
   String get hydrate => 'Hidratarse';
 
   @override
-  String get hydrateDesc =>
-      'El agua es combustible para la resiliencia. Incluso un pequeño sorbo ayuda.';
+  String get hydrateDesc => 'El agua es combustible para la resiliencia. Incluso un pequeño sorbo ayuda.';
 
   @override
   String get nourish => 'Nutrir';
 
   @override
-  String get nourishDesc =>
-      'Tu cuerpo necesita energía. Un refrigerio suave es amor propio.';
+  String get nourishDesc => 'Tu cuerpo necesita energía. Un refrigerio suave es amor propio.';
 
   @override
   String get rest => 'Descansar';
 
   @override
-  String get restDesc =>
-      'Está bien pausar. La recuperación requiere momentos tranquilos.';
+  String get restDesc => 'Está bien pausar. La recuperación requiere momentos tranquilos.';
 
   @override
   String get breathe => 'Respirar';
 
   @override
-  String get breatheDesc =>
-      'Toma una respiración profunda, solo para ti. Deja que el aire te conecte.';
+  String get breatheDesc => 'Toma una respiración profunda, solo para ti. Deja que el aire te conecte.';
 
   @override
   String get journal => 'Diario';
@@ -114,8 +110,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get loadingThought => 'Cargando pensamiento...';
 
   @override
-  String get defaultThought =>
-      'La mejor forma de predecir el futuro es crearlo.';
+  String get defaultThought => 'La mejor forma de predecir el futuro es crearlo.';
 
   @override
   String get breathingGuide => 'Guía de Respiración';
@@ -393,15 +388,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get permissionDenied => 'Permiso denegado';
 
   @override
-  String get emptyEntryError =>
-      'Por favor escribe, graba o añade una imagen antes de guardar.';
+  String get emptyEntryError => 'Por favor escribe, graba o añade una imagen antes de guardar.';
 
   @override
   String get noEntriesYet => 'No hay entradas aún.\n¡Empieza tu viaje hoy!';
 
   @override
-  String get noEntriesForDay =>
-      'No hay entradas para este día.\n¡Toca aquí para escribir!';
+  String get noEntriesForDay => 'No hay entradas para este día.\n¡Toca aquí para escribir!';
 
   @override
   String get monthLabel => 'Mes';
@@ -449,73 +442,58 @@ class AppLocalizationsEs extends AppLocalizations {
   String get moodPulseTitle => 'Pulso Emocional';
 
   @override
-  String get defaultFeedback =>
-      'Mueve los controles para mostrar cómo te sientes.';
+  String get defaultFeedback => 'Mueve los controles para mostrar cómo te sientes.';
 
   @override
   String get defaultAdvice => 'Podemos ir paso a paso.';
 
   @override
-  String get feedbackOverwhelmed =>
-      'Todo se siente ruidoso y borroso. Es un caos de alta intensidad.';
+  String get feedbackOverwhelmed => 'Todo se siente ruidoso y borroso. Es un caos de alta intensidad.';
 
   @override
-  String get adviceGrounding =>
-      'Consejo: Tu único trabajo ahora es respirar. Prueba la técnica 5-4-3-2-1: nombra 5 cosas que ves, 4 que puedes tocar.';
+  String get adviceGrounding => 'Consejo: Tu único trabajo ahora es respirar. Prueba la técnica 5-4-3-2-1: nombra 5 cosas que ves, 4 que puedes tocar.';
 
   @override
-  String get feedbackSharp =>
-      'Sientes una angustia o frustración aguda y clara.';
+  String get feedbackSharp => 'Sientes una angustia o frustración aguda y clara.';
 
   @override
-  String get adviceExitEnergy =>
-      'Consejo: Esta energía necesita salir. Lávate la cara con agua fría o haz un movimiento rápido para reiniciar tu sistema.';
+  String get adviceExitEnergy => 'Consejo: Esta energía necesita salir. Lávate la cara con agua fría o haz un movimiento rápido para reiniciar tu sistema.';
 
   @override
-  String get feedbackHeavy =>
-      'Cargas un peso pesado y difuso. Es difícil identificar el \'por qué\'.';
+  String get feedbackHeavy => 'Cargas un peso pesado y difuso. Es difícil identificar el \'por qué\'.';
 
   @override
-  String get adviceComfort =>
-      'Consejo: No luches contra la niebla. Busca pequeños consuelos: una bebida caliente, una manta suave o bajar las luces.';
+  String get adviceComfort => 'Consejo: No luches contra la niebla. Busca pequeños consuelos: una bebida caliente, una manta suave o bajar las luces.';
 
   @override
-  String get feedbackSadness =>
-      'Hay una tristeza o decepción tranquila y clara presente.';
+  String get feedbackSadness => 'Hay una tristeza o decepción tranquila y clara presente.';
 
   @override
-  String get adviceValidate =>
-      'Consejo: Está bien sentir esto. Escribe tres palabras que describan este peso. Validarlo ayuda a que pase.';
+  String get adviceValidate => 'Consejo: Está bien sentir esto. Escribe tres palabras que describan este peso. Validarlo ayuda a que pase.';
 
   @override
-  String get feedbackHaze =>
-      'Estás en una neblina mental. Las cosas se sienten desconectadas.';
+  String get feedbackHaze => 'Estás en una neblina mental. Las cosas se sienten desconectadas.';
 
   @override
-  String get adviceDigitalFast =>
-      'Consejo: Tu cerebro puede estar sobreestimulado. Prueba un \'ayuno digital\' de 10 min: deja el teléfono y mira por la ventana.';
+  String get adviceDigitalFast => 'Consejo: Tu cerebro puede estar sobreestimulado. Prueba un \'ayuno digital\' de 10 min: deja el teléfono y mira por la ventana.';
 
   @override
   String get feedbackFlow => 'Estás en un hermoso estado de flujo y claridad.';
 
   @override
-  String get adviceCreativity =>
-      'Consejo: Es un gran momento para crear o conectar. Lleva esta luz contigo a tu siguiente tarea.';
+  String get adviceCreativity => 'Consejo: Es un gran momento para crear o conectar. Lleva esta luz contigo a tu siguiente tarea.';
 
   @override
   String get feedbackDreamy => 'Sientes una felicidad suave y soñadora.';
 
   @override
-  String get adviceDaydream =>
-      'Consejo: Déjate soñar despierto. No necesitas ser productivo ahora. Solo disfruta la calidez.';
+  String get adviceDaydream => 'Consejo: Déjate soñar despierto. No necesitas ser productivo ahora. Solo disfruta la calidez.';
 
   @override
-  String get feedbackBalanced =>
-      'Estás encontrando tu equilibrio en un espacio estable.';
+  String get feedbackBalanced => 'Estás encontrando tu equilibrio en un espacio estable.';
 
   @override
-  String get adviceCheckBody =>
-      'Consejo: Revisa tu cuerpo. Nota si tus hombros están tensos y déjalos caer.';
+  String get adviceCheckBody => 'Consejo: Revisa tu cuerpo. Nota si tus hombros están tensos y déjalos caer.';
 
   @override
   String get labelFoggy => 'Confuso';
@@ -566,8 +544,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get deleteThreadTitle => '¿Eliminar Hilo?';
 
   @override
-  String get deleteThreadContent =>
-      'Esto eliminará permanentemente esta conversación.';
+  String get deleteThreadContent => 'Esto eliminará permanentemente esta conversación.';
 
   @override
   String get cancel => 'Cancelar';

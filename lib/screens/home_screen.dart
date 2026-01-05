@@ -11,6 +11,9 @@ import 'package:renbo/services/analytics_service.dart';
 // ✅ Import the generated translations file
 import 'package:renbo/l10n/gen/app_localizations.dart';
 
+// ✅ NEW IMPORT FOR FLASK API
+import 'package:renbo/services/api_service.dart';
+
 // Screen Imports
 import 'package:renbo/screens/chat_screen.dart';
 import 'package:renbo/screens/meditation_screen.dart';
@@ -37,6 +40,9 @@ class _HomeScreenState extends State<HomeScreen> {
   String _userName = "User";
   String? _thoughtOfTheDay;
   final GeminiService _geminiService = GeminiService();
+  
+  // ✅ INITIALIZE API SERVICE
+  final ApiService _apiService = ApiService();
 
   bool _isMigrating = false;
   final PageController _aftercareController = PageController();
@@ -57,6 +63,49 @@ class _HomeScreenState extends State<HomeScreen> {
     AnalyticsService.endFeatureSession("Home");
     _aftercareController.dispose();
     super.dispose();
+  }
+
+  // ✅ TEST FUNCTION FOR ML BACKEND
+  Future<void> _runMLAnalysisTest() async {
+    // Show a loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // Test phrases to send to Flask
+    const String testText = "I am feeling a bit overwhelmed and sad today, but I'm trying to stay positive.";
+    
+    final result = await _apiService.analyzeText(testText);
+
+    if (mounted) {
+      Navigator.pop(context); // Remove loading indicator
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("🧠 Renbo ML Insight"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Input: \"$testText\""),
+              const Divider(),
+              Text("Risk Level: ${result['risk_level']}"),
+              Text("Sentiment Score: ${result['sentiment_score']}"),
+              Text("Words Analyzed: ${result['word_count']}"),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cool!"),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   void _loadUserData() {
@@ -146,13 +195,24 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                l10n.helloUser(_userName),
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    l10n.helloUser(_userName),
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                  // ✅ BRAIN ICON BUTTON TO TEST FLASK API
+                  IconButton(
+                    icon: const Icon(Icons.psychology, color: AppTheme.primaryColor),
+                    onPressed: _runMLAnalysisTest,
+                    tooltip: "Test ML Analysis",
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               _buildBrightThoughtCard(isDark, l10n),

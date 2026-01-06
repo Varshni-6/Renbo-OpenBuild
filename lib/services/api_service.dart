@@ -4,18 +4,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ApiService {
-  // Use "http://10.0.2.2:5000" for Android Emulator 
-  // Use "http://localhost:5000" for iOS Simulator or Local Desktop
-  final String baseUrl = "http://localhost:5000"; 
+  final String baseUrl = "https://renbo-web-hosting-backend.onrender.com";
 
   // --- 1. Sentiment Analysis for Live Chat ---
   Future<Map<String, dynamic>> analyzeText(String text) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/analyze'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'text': text}),
-      ).timeout(const Duration(seconds: 5));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/analyze'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'text': text}),
+          )
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -23,7 +23,8 @@ class ApiService {
         return {
           "status": "error",
           "sentiment_score": 0.0,
-          "persona_advice": "The user seems stable. Engage in a friendly, helpful conversation.",
+          "persona_advice":
+              "The user seems stable. Engage in a friendly, helpful conversation.",
           "risk_level": "Low - Stable"
         };
       }
@@ -32,14 +33,16 @@ class ApiService {
       return {
         "status": "error",
         "sentiment_score": 0.0,
-        "persona_advice": "The user seems stable. Engage in a friendly, helpful conversation.",
+        "persona_advice":
+            "The user seems stable. Engage in a friendly, helpful conversation.",
         "risk_level": "Low - Stable"
       };
     }
   }
 
   // --- 2. Talk to the Holistic Flask Route ---
-  Future<Map<String, dynamic>> analyzeHolisticWellness(double avgSentiment, Map<String, int> stats) async {
+  Future<Map<String, dynamic>> analyzeHolisticWellness(
+      double avgSentiment, Map<String, int> stats) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/holistic_analysis'),
@@ -53,7 +56,7 @@ class ApiService {
     } catch (e) {
       print("Holistic API Error: $e");
       return {
-        "status": "error", 
+        "status": "error",
         "feedback": "Could not connect to Renbo Brain.",
         "wellness_score": 50.0
       };
@@ -63,13 +66,14 @@ class ApiService {
   // --- 3. Gather Data & Generate Report ---
   Future<Map<String, dynamic>> generateUserReport() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return {"status": "error", "message": "User not logged in"};
+    if (user == null)
+      return {"status": "error", "message": "User not logged in"};
     final uid = user.uid;
 
     // 1. Get Chat Sentiment (Fetch last 5 messages from the most recent thread)
     double totalSentiment = 0;
     int messageCount = 0;
-    
+
     final threads = await FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
@@ -96,7 +100,8 @@ class ApiService {
       }
     }
 
-    double avgSentiment = messageCount > 0 ? totalSentiment / messageCount : 0.0;
+    double avgSentiment =
+        messageCount > 0 ? totalSentiment / messageCount : 0.0;
 
     // 2. Fetch Usage Metrics from Firestore
     final usageDocs = await FirebaseFirestore.instance
@@ -104,7 +109,7 @@ class ApiService {
         .doc(uid)
         .collection('usage_metrics')
         .get();
-    
+
     Map<String, int> stats = {};
     for (var doc in usageDocs.docs) {
       stats[doc.id] = doc['count'] ?? 0;
